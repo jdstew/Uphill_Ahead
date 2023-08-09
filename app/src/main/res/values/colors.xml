@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="green_usfs">#ff169900</color>
+    <color name="yellow_usfs">#ffffcc00</color>
+    <color name="brown_medium">#ffab592a</color>
+    <color name="brown_dark">#ff6e3f24</color>
+    <color name="brown_light">#ffffd19a</color>
+    <color name="blue_dark">#ff29657e</color>
+    <color name="blue_medium">#ff5089b4</color>
+    <color name="blue_light">#ff779bc0</color>
+    <color name="red_medium">#ff953235</color>
+    <color name="khaki">#ffc3b091</color>
+    <color name="mauve_medium">#ffc2887f</color>
+    <color name="mauve_dark">#ff9c6b58</color>
+    <color name="mauve_light">#ffe4bbb0</color>
+    <color name="orange_medium">#ffdc8132</color>
+    <color name="orange_dark">#ffc7521b</color>
+    <color name="orange_light">#ffffad77</color>
+    <color name="green_medium">#ff509363</color>
+    <color name="green_dark">#ff2a6042</color>
+    <color name="green_light">#ffa3d8b4</color>
+    <color name="color_easy">#ff7fff7f</color>
+    <color name="color_medium">#ffffff7f</color>
+    <color name="color_hard">#ffff7f7f</color>
+    <color name="gray_light">#ffA4A4A4</color>
+    <color name="gray_dark">#ff525252</color>
+    <color name="on_green">#ff00FF00</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="white_semi_transparent">#AAFFFFFF</color>
+</resources>

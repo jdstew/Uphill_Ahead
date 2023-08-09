@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent">
+
+    <PreferenceCategory>
+
+        <DropDownPreference
+            android:key="@string/direction_pref_key"
+            android:title="@string/direction_pref_title"
+            android:entries="@array/direction_pref_array"
+            android:entryValues="@array/direction_pref_array"
+            android:defaultValue="0"
+            app:useSimpleSummaryProvider="true"/>
+
+        <DropDownPreference
+            android:key="@string/source_pref_key"
+            android:title="@string/source_pref_title"
+            android:entries="@array/source_pref_array"
+            android:entryValues="@array/source_pref_array"
+            android:defaultValue="0"
+            app:useSimpleSummaryProvider="true"/>
+
+        <DropDownPreference
+            android:key="@string/gps_update_pref_key"
+            android:title="@string/gps_update_pref_title"
+            android:entries="@array/gps_update_pref_array"
+            android:entryValues="@array/gps_update_pref_array"
+            android:defaultValue="1"
+            app:useSimpleSummaryProvider="true"/>
+
+        <DropDownPreference
+            android:key="@string/snap_to_trail_pref_key"
+            android:title="@string/snap_to_trail_pref_title"
+            android:entries="@array/snap_to_trail_pref_array"
+            android:entryValues="@array/snap_to_trail_pref_array"
+            android:defaultValue="0"
+            app:useSimpleSummaryProvider="true"/>
+
+        <SeekBarPreference
+            android:key="@string/exaggeration_pref_key"
+            app:title="@string/exaggeration_pref_title"
+            app:min="1"
+            android:defaultValue="10"
+            android:max="30"
+            app:showSeekBarValue="false"/>
+
+        <SeekBarPreference
+            android:key="@string/pace_pref_key"
+            app:title="@string/pace_pref_title"
+            app:min="5"
+            android:defaultValue="10"
+            android:max="20"
+            app:showSeekBarValue="false"/>
+
+        <DropDownPreference
+            android:key="@string/system_pref_key"
+            android:title="@string/system_pref_title"
+            android:entries="@array/system_pref_array"
+            android:entryValues="@array/system_pref_array"
+            android:defaultValue="1"
+            app:useSimpleSummaryProvider="true"/>
+
+    </PreferenceCategory>
+
+</androidx.preference.PreferenceScreen>

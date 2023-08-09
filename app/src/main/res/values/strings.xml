@@ -1,0 +1,79 @@
+<resources>
+    <string name="app_name">Up\'ahead</string>
+    <string name="preference_file_key">name.jdstew.uphillahead.PREFERENCE_FILE_KEY</string>
+    <string name="select_route_cta_text">Select route from list below</string>
+    <string name="selected_route_text">no route selected</string>
+
+    <!-- Used by activity_main -->
+    <string name="ico_settings_desc">Settings icon</string>
+    <string name="txt_route_title">Up\'Ahead</string>
+    <string name="txt_direction_title">Select trail in settings</string>
+    <string name="view_settings_title">Application settings</string>
+
+    <!-- Used by GraphView, AlertDialog when Observer is not on trail -->
+    <string name="alert_snap_to_trail">Device not near trail.</string>
+    <string name="opt_simulate"       >Simulate at start/end</string>
+    <string name="opt_cancel"           >CANCEL</string>
+
+    <!-- Used by GraphView, activity_popup -->
+    <string name="txt_pressed_location_details">Location details</string>
+    <string name="btn_simulate_location">SIMULATE LOCATION</string>
+    <string name="btn_google_maps">GOOGLE MAPS</string>
+
+    <!-- Used by activity_settings -->
+    <string name="route_pref_key">route_pref_key</string>
+    <string name="route_pref_title">Trail selected</string>
+    <string name="route_selected_default">No route selected</string>
+
+    <string name="direction_pref_key">direction_pref_key</string>
+    <string name="direction_pref_title">Direction selected</string>
+    <string-array name="direction_pref_array">
+        <item>Northbound</item>
+        <item>Southbound</item>
+    </string-array>
+
+    <string name="source_pref_key">source_pref_key</string>
+    <string name="source_pref_title">Location source</string>
+    <string-array name="source_pref_array">
+        <item>GPS, at update frequency</item>
+        <item>Last known position or closest to start/end</item>
+        <item>Simulated</item>
+    </string-array>
+
+    <string name="gps_update_pref_key">gps_update_pref_key</string>
+    <string name="gps_update_pref_title">GPS update frequency</string>
+    <string-array name="gps_update_pref_array">
+        <item>Once per minute</item>
+        <item>Every 6 minutes</item>
+        <item>Every 15 minutes</item>
+    </string-array>
+
+    <string name="snap_to_trail_pref_key">snap_to_trail_pref_key</string>
+    <string name="snap_to_trail_pref_title">Use GPS, if this close</string>
+    <string-array name="snap_to_trail_pref_array">
+        <item>15 meters / 49 feet</item>
+        <item>30 meters / 98 feet</item>
+        <item>45 meters / 148 feet</item>
+        <item>60 meters / 197 feet</item>
+        <item>75 meters / 246 feet</item>
+    </string-array>
+
+    <string name="exaggeration_pref_key">exaggeration_pref_key</string>
+    <string name="exaggeration_pref_title">Elevation exaggeration (multiplier)</string>
+
+    <string name="pace_pref_key">pace_pref_key</string>
+    <string name="pace_pref_title">Pace multiplier (slower-faster)</string>
+
+    <string name="system_pref_key">system_pref_key</string>
+    <string name="system_pref_title">Distance and speed units</string>
+    <string-array name="system_pref_array">
+        <item>Metric (m, km, km/hr)</item>
+        <item>Imperial (ft, mi, mi/hr)</item>
+    </string-array>
+
+    <string name="btn_about_title">About this app</string>
+    <string name="btn_legal_title">Legal disclaimer</string>
+
+    <string name="txt_about_text">About Up\'ahead (Uphill Ahead)\n\nThis app was designed to provide, at a quick glance, changes in elevation and availability of water and campsites ahead along the Pacific Crest Trail.  It is intended to supplement other cools apps (e.g., FarOut, Gaia GPS, etc.).  The data used by this application is from Halfmile’s PCT Maps at https://pctmap.net/gps/ with modifications.</string>
+    <string name="txt_legal_text">Legal disclaimer\n\nThis application and its data are intended for hikers to have general awareness of elevations and resources ahead along their route. This application and its data are provided as a free service.  The computations and data are known to have limitations of accuracy and completeness and contain minor errors. Trail conditions, personal fitness, weather, and climate are among many factors not used in computations within this application. This application and its data must not be used for high-risk or life-threatening activities such as backpacking, hunting, search and rescue, law enforcement, etc.  This application and its data are distributed in the hope that they will be useful. However, they are conveyed without any warranty and without implied warranty of merchantability or fitness for a particular purpose.</string>
+</resources>
