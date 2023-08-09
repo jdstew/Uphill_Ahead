@@ -1,6 +1,6 @@
 # Uphill Ahead (Up’ahead) – an Android App
 
-![Uphill Ahead application icon](uphill_ahead_icon_512.png)
+![Uphill Ahead application icon](app/uphill_ahead_icon_512.png)
 
 ## Project description
 
