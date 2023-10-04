@@ -226,37 +226,21 @@ public class Calcs {
      * see <a href="https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line">
      *     distance from a point to a line</a>
      *
+     * Note: this method does not assume that the point is within the arc from the
+     * edge between previous and next nodes.
+     *
      * @param n Node to measure to
      * @param e Edge to measure from
-     * @return
+     * @return approximate perpendicular distance of the node from the line formed by the edge
      */
     public static double getNodeToEdgeDist(Node n, Edge e) {
-        Node a = e.getPrevNode();
-        Node b = e.getNextNode();
+        Node p1 = e.getPrevNode();
+        Node p2 = e.getNextNode();
 
-        double lonCorr = Math.cos(Math.toRadians((a.getLatitude() + b.getLatitude()) / 2.0));
-
-        // _____/\n
-        // ____/__\
-        // ___/____\
-        // __/______\
-        // a/________\b
-        //
-        // an and nb must be less than ab
-        double ab = Math.sqrt(Math.pow(a.getLatitude() - b.getLatitude(), 2.0)
-                + Math.pow((a.getLongitude() - b.getLongitude()) * lonCorr, 2.0));
-        double an = Math.sqrt(Math.pow(a.getLatitude() - n.getLatitude(), 2.0)
-                + Math.pow((a.getLongitude() - n.getLongitude()) * lonCorr, 2.0));
-        double nb = Math.sqrt(Math.pow(n.getLatitude() - b.getLatitude(), 2.0)
-                + Math.pow((n.getLongitude() - b.getLongitude()) * lonCorr, 2.0));
-        if (an > ab || nb > ab) {
-            return Double.MAX_VALUE; // meaning, angle n is acute
-        }
-
-        return Math
-                .abs((b.getLongitude() - a.getLongitude()) * lonCorr * (a.getLatitude() - n.getLatitude())
-                        - (a.getLongitude() - n.getLongitude()) * lonCorr * (b.getLatitude() - a.getLatitude()))
-                / ab * Units.DEGREE_TO_METER;
+        return Math.abs((p2.getLongitude() - p1.getLongitude()) * (p1.getLatitude() - n.getLatitude())
+                - (p1.getLongitude() - n.getLongitude()) * (p2.getLatitude() - p1.getLatitude())) /
+                Math.sqrt(Math.pow(p2.getLongitude() - n.getLongitude(), 2.0) + Math.pow(p2.getLatitude() - p1.getLatitude(), 2.0)) *
+                Units.DEGREE_TO_METER;
     }
 
     /**
