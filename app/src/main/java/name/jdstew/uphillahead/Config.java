@@ -47,6 +47,7 @@ public class Config {
      * Observer longitude preference
      */
     public static final String LOCATION_LONGITUDE_DEFAULT = "location_longitude_pref_key";
+    public static final String LOCATION_ELEVATION_DEFAULT = "location_elevation_pref_key";
     /**
      * Observer default latitude
      */
@@ -55,6 +56,7 @@ public class Config {
      * Observer default longitude
      */
     public static final double LOCATION_DEFAULT_LONGITUDE = -121.0;
+    public static final double LOCATION_DEFAULT_ELEVATION = 0.0;
 
     /**
      * The selected Graph (Route)
@@ -88,19 +90,15 @@ public class Config {
     /**
      * Use GPS for precise positioning, at the periodicity set by another preference
      */
-    public static final String SOURCE_GPS = "GPS, at update frequency";
-    /**
-     * Use device Last-Known-Position (LKP), or rough precision
-     */
-    public static final String SOURCE_LKP = "Last known position or closest to start/end";
+    public static final String SOURCE_LOCATION_SERVICES = "Device location services";
     /**
      * Use simulated position
      */
-    public static final String SOURCE_SIM = "Simulated";
+    public static final String SOURCE_SIMULATED = "Simulated";
     /**
      * Default setting for using the Observer's position
      */
-    public static final String SOURCE_DEFAULT = SOURCE_GPS;
+    public static final String SOURCE_DEFAULT = SOURCE_LOCATION_SERVICES;
 
     /**
      * Default setting for determining if a location update is recent
@@ -110,23 +108,23 @@ public class Config {
     /**
      * Preference for how often the GPS is used to get a precise location.
      */
-    public static final String GPS_UPDATE_KEY = "gps_update_pref_key";
+    public static final String LOCATION_UPDATE_KEY = "location_update_pref_key";
     /**
      * GPS precise update period of 1 minute.
      */
-    public static final String GPS_UPDATE_1_MIN = "Once per minute";
+    public static final String LOCATION_UPDATE_1_MIN = "Once per minute";
     /**
      * GPS precise update period of 6 minutes.
      */
-    public static final String GPS_UPDATE_6_MIN = "Every 6 minutes";
+    public static final String LOCATION_UPDATE_6_MIN = "Every 6 minutes";
     /**
      * GPS precise update period of 15 minutes.
      */
-    public static final String GPS_UPDATE_15_MIN = "Every 15 minutes";
+    public static final String LOCATION_UPDATE_15_MIN = "Every 15 minutes";
     /**
      * GPS precise update period default.
      */
-    public static final String GPS_UPDATE_DEFAULT = GPS_UPDATE_6_MIN;
+    public static final String LOCATION_UPDATE_DEFAULT = LOCATION_UPDATE_6_MIN;
 
     /**
      * When GPS in enabled for precise positioning, Person (Observer's)
@@ -136,15 +134,17 @@ public class Config {
      */
     public static long getGpsUpdateValue(String value) {
         switch (value) {
-            case GPS_UPDATE_1_MIN:
+            case LOCATION_UPDATE_1_MIN:
                 return 1;
-            case GPS_UPDATE_15_MIN:
+            case LOCATION_UPDATE_15_MIN:
                 return 15;
-            case GPS_UPDATE_6_MIN:
+            case LOCATION_UPDATE_6_MIN:
             default:
                 return 6;
         }
     }
+
+    public static final double MAX_DIST_TO_GRAPH_EDGE	= 75.0;
 
     /**
      * Person (Observer's) minimum distance to "snap-to" nearest Graph
