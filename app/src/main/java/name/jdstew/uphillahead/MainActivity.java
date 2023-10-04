@@ -44,11 +44,14 @@ public class MainActivity extends AppCompatActivity {
     public static final int PERMISSIONS_REQUEST_LOCATION_ID = 99;
     private SharedPreferences prefs;
     private TextView txtRoute;
+    private GraphView graphView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        this.checkLocationPermission();
 
         prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         txtRoute = findViewById(R.id.txtRoute);
@@ -56,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         ImageView imgSettings = findViewById(R.id.icoSettings);
         imgSettings.setOnClickListener(ocl -> startActivitySettings());
 
-        GraphView graphView = new GraphView(this);
+        graphView = new GraphView(this);
         graphView.setZ(-1.0f);
         graphView.setWillNotDraw(false);
 //        TODO: need to set background of GraphView based upon day/night setting
@@ -99,24 +102,31 @@ public class MainActivity extends AppCompatActivity {
         txtRoute.setText(graphName + ", " + directionText);
     }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        graphView.onStopPsuedo();
+    }
+
     public boolean checkLocationPermission() {
         //check the location permissions and return true or false.
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             //permissions granted
-            Toast.makeText(getApplicationContext(), "Location services granted", Toast.LENGTH_LONG).show();
+//            Log.i(DEBUG_TAG, "Location services previously granted");
             return true;
         } else {
             //permissions NOT granted - if permissions are NOT granted, ask for permissions
-            Toast.makeText(getApplicationContext(), "Please enable permissions", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "Please enable location services permissions", Toast.LENGTH_LONG).show();
             if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
                 // Show an explanation to the user *asynchronously* -- don't block
                 // this thread waiting for the user's response! After the user
                 // sees the explanation, try again to request the permission.
                 new AlertDialog.Builder(this)
-                        .setTitle("Permissions request rational")
-                        .setMessage("Enabling GPS allows this app to locate you on the trail.")
-                        .setPositiveButton("Ok, I agree", (dialogInterface, i) -> {
+                        .setTitle("Location services permissions rational")
+                        .setMessage("Enabling precise locations will locate you on the trail.")
+                        .setPositiveButton("Ok, allow", (dialogInterface, i) -> {
                             //Prompt the user once explanation has been shown
                             ActivityCompat.requestPermissions(MainActivity.this,
                                     new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,
