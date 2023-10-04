@@ -51,7 +51,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
             btnSimulate.setOnClickListener(ocl -> {
                 Observer observer = Observer.getInstance();
                 if (observer != null) {
-                    observer.setSimulatedLocation(latitude, longitude);
+                    observer.setSimulatedLocation(latitude, longitude, 0.0);
                 }
                 this.finish();
             });
