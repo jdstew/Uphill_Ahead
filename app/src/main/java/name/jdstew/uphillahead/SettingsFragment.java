@@ -37,9 +37,10 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         setPreferencesFromResource(R.xml.preferences, rootKey);
 
         SeekBarPreference exaggerationSbp = findPreference(getString(R.string.exaggeration_pref_key));
-        exaggerationSbp.setSummary("x" + exaggerationSbp.getValue());
+        exaggerationSbp.setSummary("vertical change " + exaggerationSbp.getValue() + " times horizontal");
         exaggerationSbp.setOnPreferenceChangeListener((preference, newValue) -> {
-            preference.setSummary("x" + newValue);
+            preference.setSummary("vertical change " + newValue + " times horizontal");
+
             return true; // because we can't change the value of the preference to a float
         });
 
@@ -48,10 +49,18 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         nf.setMinimumIntegerDigits(1);
 
         SeekBarPreference paceSbp = findPreference(getString(R.string.pace_pref_key));
-        paceSbp.setSummary(nf.format(paceSbp.getValue() * Config.PACE_PREFS_MULTIPLIER));
+        float paceMultiplier = paceSbp.getValue() * Config.PACE_PREFS_MULTIPLIER;
+        double paceKmHr = Calcs.getPaceAtSlope(0.0) * paceMultiplier * 1_000.0;
+        String paceDisplayedKmHr = Calcs.getDisplayedDist(paceKmHr, Config.SYSTEM_METRIC);
+        String paceDisplayedMiHr = Calcs.getDisplayedDist(paceKmHr, Config.SYSTEM_IMPERIAL);
+        paceSbp.setSummary(nf.format(paceMultiplier) + "(" + paceDisplayedMiHr + " or " + paceDisplayedKmHr + " per hr)");
+
         paceSbp.setOnPreferenceChangeListener((preference, newValue) -> {
-            final float paceVal = Float.parseFloat(String.valueOf(newValue));
-            preference.setSummary(nf.format(paceVal / 10.0f));
+            float paceVal = Float.parseFloat(String.valueOf(newValue)) * Config.PACE_PREFS_MULTIPLIER;
+            double pace = Calcs.getPaceAtSlope(0.0) * paceVal * 1_000.0;
+            String paceKPH = Calcs.getDisplayedDist(pace, Config.SYSTEM_METRIC);
+            String paceMPH = Calcs.getDisplayedDist(pace, Config.SYSTEM_IMPERIAL);
+            preference.setSummary(nf.format(paceVal) + "(" + paceKPH + " or " + paceMPH + " per hr)");
             return true; // true indicates that the preferences of this slider should be updated
         });
     }
