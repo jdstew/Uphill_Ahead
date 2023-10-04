@@ -287,19 +287,19 @@ public class Graph implements Serializable {
      * @return index of closest Node
      */
     private int getClosestNodeIndex(Node n) {
-        int minIndex = -1;
-        double minDist = Double.MAX_VALUE;
+        int closestNodeIndex = -1;
+        double closestNodeDistance = Double.MAX_VALUE;
 
         for (int i = 0; i < nodes.size(); ++i) {
             Node n0 = nodes.get(i);
             double d = Calcs.getDistance(n0.getLatitude(), n0.getLongitude(), n.getLatitude(), n.getLongitude(), false);
-            if (d < minDist) {
-                minDist = d;
-                minIndex = i;
+            if (d < closestNodeDistance) {
+                closestNodeDistance = d;
+                closestNodeIndex = i;
             }
         }
 
-        return minIndex;
+        return closestNodeIndex;
     }
 
     /**
@@ -399,18 +399,18 @@ public class Graph implements Serializable {
             return true;
         }
 
-        if (closestEdge != null && minDist < Units.NODE_TO_EDGE_CLOSE) {
-            NumberFormat nf = NumberFormat.getInstance();
-            nf.setMaximumFractionDigits(1);
-            nf.setMinimumIntegerDigits(1);
-
-            String sb = "ERROR: waypoint " + n.getName() +
-                    " (" + n.getLatitude() + ", " + n.getLongitude() + ")" +
-                    " was " + nf.format(minDist) + "m away (but less than "
-                    + nf.format(Units.NODE_TO_EDGE_CLOSE) + "m)" +
-                    " and was not inserted.";
+//        if (closestEdge != null && minDist < Units.NODE_TO_EDGE_CLOSE) {
+//            NumberFormat nf = NumberFormat.getInstance();
+//            nf.setMaximumFractionDigits(1);
+//            nf.setMinimumIntegerDigits(1);
+//
+//            String sb = "ERROR: waypoint " + n.getName() +
+//                    " (" + n.getLatitude() + ", " + n.getLongitude() + ")" +
+//                    " was " + nf.format(minDist) + "m away (but less than "
+//                    + nf.format(Units.NODE_TO_EDGE_CLOSE) + "m)" +
+//                    " and was not inserted.";
 //            System.out.println(sb);
-        }
+//        }
         return false;
     }
 
@@ -443,68 +443,92 @@ public class Graph implements Serializable {
     }
 
     /**
-     * Finds the closest node within the graph to the observer node. The returned
-     * node will be the observer node with temporary the start or end of the graph,
-     * then the returned node is that closest node.
+     * Creates an Edge for the Node provided to connect with this Graph.
+     * The Node provided is where the device is located or simulate.
+     * The Nodes are then traversed, beginning with this node, to create
+     * the graphical display in the app's main activity.
+     *
+     * If not equal to an existing Node within the Graph, a new Edge will
+     * be created, in the direction of travel, to the next Node.  However,
+     * if the distance to the closest node is greater than the maximum
+     * allowed (75m), then a new Edge to the closest node will be created.
+     *
+     * @param node The Node to modify by adding an Edge to this graph
+     * @param toEnd Whether the direction of travel is to the end of the graph
+     * @return the perpendicular distance from the node to the edge going
+     * in the direction of the route.  However, if the distance to the
+     * closest node is greater than the maximum allowed (75m), then the
+     * the distance to the closest node will be returned.
      */
-    public Node getEntryEdge(Node node, int snapToTrail, boolean toEnd) {
-        // is node within this graph's extent
-        if (!this.isNodeInExtents(node)) {
-            return null;
-        }
+    public double setEntryEdge(Node node, boolean toEnd) {
 
-
-        int closestNodeIndex = this.getClosestNodeIndex(node);
-        Node closestNode = nodes.get(closestNodeIndex);
-        if (closestNode.equals(node)) {
-            return closestNode;
-        }
-
-        Edge closestEdge = null;
-        double minDist = Double.MAX_VALUE;
-        for (int i = Math.max(closestNodeIndex - 3, 0); i < Math.min(closestNodeIndex + 4, nodes.size()); ++i) {
-            Edge nextEdge = nodes.get(i).getNextEdge();
-            if (nextEdge != null) {
-                double d = Calcs.getNodeToEdgeDist(node, nextEdge);
-                if (d < minDist) {
-                    minDist = d;
-                    closestEdge = nextEdge;
-                }
+        int closestNodeIndex = -1;
+        double closestNodeDist = Double.MAX_VALUE;
+        Node closestNode = null;
+        for (int i = 0; i < nodes.size(); ++i) {
+            Node n = nodes.get(i);
+            double d = Calcs.getDistance(n.getLatitude(), n.getLongitude(), node.getLatitude(), node.getLongitude(), false);
+            if (d < closestNodeDist) {
+                closestNodeIndex = i;
+                closestNodeDist = d;
+                closestNode = n;
             }
         }
+        System.out.println("closest node is " + closestNode + " at " + closestNodeDist + " meters away");
 
-        // if close to trail, set entry edge along nearest
-        if (minDist < (double)snapToTrail) {
-            Edge joiningEdge;
+        // "level" the elevation of the node to closest node (typically for simulated locations)
+        if (node.getElevation() == 0.0) {
+            node.changeLocation(node.getLatitude(), node.getLongitude(), closestNode.getElevation());
+        }
 
+        // does the node match an existing Node within the graph?
+        if (closestNodeDist <= Units.NODE_EQUALS_MIN) {
             if (toEnd) {
-                double d = Calcs.getDistance(closestEdge.getPrevNode().getLatitude(), closestEdge.getPrevNode().getLongitude(),
-                        node.getLatitude(), node.getLongitude(), false);
-                double e = closestEdge.getPrevNode().getElevation() + d/closestEdge.getDistance() *
-                        (closestEdge.getNextNode().getElevation() - closestEdge.getPrevNode().getElevation());
-                if (e == Double.NaN || e == -Double.NaN) {
-                    e = closestEdge.getPrevNode().getElevation();
-                }
-
-                node.changeLocation(node.getLatitude(), node.getLongitude(), e);
-                joiningEdge = new Edge(node, closestEdge.getNextNode());
-                node.setNextEdge(joiningEdge);
+                node.setNextEdge(closestNode.getNextEdge());
             } else {
-                double d = Calcs.getDistance(closestEdge.getNextNode().getLatitude(), closestEdge.getNextNode().getLongitude(),
-                        node.getLatitude(), node.getLongitude(), false);
-                double e = closestEdge.getNextNode().getElevation() + d/closestEdge.getDistance() *
-                        (closestEdge.getPrevNode().getElevation() - closestEdge.getNextNode().getElevation());
-                if (e == Double.NaN || e == -Double.NaN) {
-                    e = closestEdge.getNextNode().getElevation();
-                }
-
-                node.changeLocation(node.getLatitude(), node.getLongitude(), e);
-                joiningEdge = new Edge(closestEdge.getPrevNode(), node);
-                node.setPrevEdge(joiningEdge);
+                node.setPrevEdge(closestNode.getPrevEdge());
             }
-            return node;
-        } else {
-            return null;
+            return closestNodeDist;
+        }
+
+        // does the distance to the closest node exceed the maximum?
+        if (closestNodeDist > Config.MAX_DIST_TO_GRAPH_EDGE) {
+            if (toEnd) {
+                if (closestNodeIndex < nodes.size() - 1) {
+                    node.setNextEdge(closestNode.getNextEdge());
+                } else { // point back to last node
+                    node.setPrevEdge(closestNode.getPrevEdge());
+                }
+            } else {
+                if (closestNodeIndex > 0) {
+                    node.setPrevEdge(closestNode.getPrevEdge());
+                } else { // point back to first node
+                    node.setNextEdge(closestNode.getNextEdge());
+                }
+            }
+            return closestNodeDist;
+        }
+
+        // compute distance-to the existing Edge and a new Edge to the
+        // next Node in the direction of travel
+        if (toEnd) {
+            Edge nextEdge = closestNode.getNextEdge();
+            if (nextEdge != null) {
+                node.setNextEdge(new Edge(node, nextEdge.getNextNode()));
+                return Calcs.getNodeToEdgeDist(node, nextEdge);
+            } else { // node is beyond the last node
+                node.setPrevEdge(new Edge(closestNode, node));
+                return closestNodeDist;
+            }
+        } else { // to start
+            Edge prevEdge = closestNode.getPrevEdge();
+            if (prevEdge != null) {
+                node.setPrevEdge(new Edge(prevEdge.getPrevNode(), node));
+                return Calcs.getNodeToEdgeDist(node, prevEdge);
+            } else { // node is prior to the first node
+                node.setNextEdge(new Edge(node, closestNode));
+                return closestNodeDist;
+            }
         }
     }
 
@@ -536,9 +560,7 @@ public class Graph implements Serializable {
     public void renderHTML(File pathName, int width, int height) {
         // determine hDist of Graph
         AtomicReference<Double> hDistTotal = new AtomicReference<>(0.0);
-        edges.forEach(e -> {
-            hDistTotal.set(hDistTotal.get() + e.getHorizontalDistance());
-        });
+        edges.forEach(e -> hDistTotal.set(hDistTotal.get() + e.getHorizontalDistance()));
 
         double hScale = (double) width / hDistTotal.get();
         double vScale = hScale * Config.EXAGGERATION_DEFAULT;
