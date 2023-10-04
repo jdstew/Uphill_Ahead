@@ -12,8 +12,8 @@
 
     <!-- Used by GraphView, AlertDialog when Observer is not on trail -->
     <string name="alert_snap_to_trail">Device not near trail.</string>
-    <string name="opt_simulate"       >Simulate at start/end</string>
-    <string name="opt_cancel"           >CANCEL</string>
+    <string name="opt_simulate"       >Simulate</string>
+    <string name="opt_cancel"           >Ignore</string>
 
     <!-- Used by GraphView, activity_popup -->
     <string name="txt_pressed_location_details">Location details</string>
@@ -35,21 +35,20 @@
     <string name="source_pref_key">source_pref_key</string>
     <string name="source_pref_title">Location source</string>
     <string-array name="source_pref_array">
-        <item>GPS, at update frequency</item>
-        <item>Last known position or closest to start/end</item>
+        <item>Device location services</item>
         <item>Simulated</item>
     </string-array>
 
-    <string name="gps_update_pref_key">gps_update_pref_key</string>
-    <string name="gps_update_pref_title">GPS update frequency</string>
-    <string-array name="gps_update_pref_array">
+    <string name="location_update_pref_key">location_update_pref_key</string>
+    <string name="location_update_pref_title">Location services update frequency</string>
+    <string-array name="location_update_pref_array">
         <item>Once per minute</item>
         <item>Every 6 minutes</item>
         <item>Every 15 minutes</item>
     </string-array>
 
     <string name="snap_to_trail_pref_key">snap_to_trail_pref_key</string>
-    <string name="snap_to_trail_pref_title">Use GPS, if this close</string>
+    <string name="snap_to_trail_pref_title">Use location services, if this close</string>
     <string-array name="snap_to_trail_pref_array">
         <item>15 meters / 49 feet</item>
         <item>30 meters / 98 feet</item>
@@ -60,9 +59,11 @@
 
     <string name="exaggeration_pref_key">exaggeration_pref_key</string>
     <string name="exaggeration_pref_title">Elevation exaggeration (multiplier)</string>
+    <string name="exaggeration_content_descr">Slide bar adjusts graphed elevation exaggeration</string>
 
     <string name="pace_pref_key">pace_pref_key</string>
     <string name="pace_pref_title">Pace multiplier (slower-faster)</string>
+    <string name="pace_pref_content_descr">Slide bar adjusts speed of hiker time calculations</string>
 
     <string name="system_pref_key">system_pref_key</string>
     <string name="system_pref_title">Distance and speed units</string>
