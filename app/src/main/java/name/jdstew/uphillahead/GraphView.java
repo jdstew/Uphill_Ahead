@@ -40,6 +40,7 @@ import android.graphics.BitmapFactory;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -52,6 +53,9 @@ import androidx.preference.PreferenceManager;
 
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -62,24 +66,24 @@ import java.util.concurrent.atomic.AtomicReference;
  * @since 1.0
  * @author Jeff Stewart, jeffrey.d.stew@gmail.com
  */
-public class GraphView extends SurfaceView implements OnSuccessListener<Location> {
+public class GraphView extends SurfaceView implements SharedPreferences.OnSharedPreferenceChangeListener, OnSuccessListener<Location> {
     /**
      * Logcat identifier
      */
     private static final String DEBUG_TAG = "name.jdstew.uphillahead.GraphView";
 
-    private static final int POPUP_DETAILS_CHAR_THRESHOLD = 128;
+    private static final int POPUP_DETAILS_CHAR_THRESHOLD = 64;
     public static final int DEFAULT_NODE_ICON_SIZE = 36;
     public static final int DEFAULT_NODE_ICON_BUFFER = 4;
 
     /**
      * The dp length of dashes for a dashed line
      */
-    public static final int DASHED_DASHES_DP = 6;
+    public static final int DASHED_DASHES_DP = 12;
     /**
      * The dp width of a dashed line
      */
-    public static final int DASHED_LINE_DP = 2;
+    public static final int DASHED_LINE_DP = 4;
     /**
      * The dp length and width of a SVG icon
      */
@@ -88,7 +92,8 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
 
     private final Observer observer;
     private final Node observerNode;
-    private Node cursorNode;
+    private Location observerLocation;
+    private boolean isOffGraphAcceptable;
     private final HashMap<Point, Node> water;
     private final HashMap<Point, Node> tent;
     private final HashMap<Point, Node> info;
@@ -116,18 +121,21 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
      */
     public GraphView(AppCompatActivity parentActivity) {
         super(parentActivity);
+        this.parentActivity = parentActivity;
 
-        this.parentActivity =  parentActivity;
-        observer = Observer.createInstance(this, (MainActivity)parentActivity);
+        prefs = PreferenceManager.getDefaultSharedPreferences(parentActivity);
+        prefs.registerOnSharedPreferenceChangeListener(this);
 
-        observerNode = new Node(Config.LOCATION_DEFAULT_LATITUDE, Config.LOCATION_DEFAULT_LONGITUDE, 0.0);
-        cursorNode = new Node(0.0, 0.0, 0.0);
+        double storedLatitude = Double.parseDouble(prefs.getString("location_latitude_pref_key", Double.toString(Config.LOCATION_DEFAULT_LATITUDE)));
+        double storedLongitude = Double.parseDouble(prefs.getString("location_longitude_pref_key", Double.toString(Config.LOCATION_DEFAULT_LONGITUDE)));
+        double storedElevation = Double.parseDouble(prefs.getString("location_elevation_pref_key", Double.toString(0.0)));
+        observerNode = new Node(storedLatitude, storedLongitude, storedElevation);
+        observer = Observer.getInstance(this, (MainActivity)parentActivity);
+        isOffGraphAcceptable = false;
 
         water = new HashMap<>();
         tent = new HashMap<>();
         info = new HashMap<>();
-
-        prefs = PreferenceManager.getDefaultSharedPreferences(parentActivity);
 
         // NOTE: a touchPoint outside the GraphView will not be displayed.
         touchPoint = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
@@ -154,15 +162,26 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
 
     @Override
     public void onSuccess(Location location) {
-        Log.d(DEBUG_TAG, "GPS update via onSuccess() triggered invalidate()");
+        observerNode.changeLocation(location.getLatitude(), location.getLongitude(), location.getAltitude());
+        observerLocation = location;
+        isOffGraphAcceptable = false;
+//        Log.d(DEBUG_TAG, "Location update triggered invalidate()");
         invalidate();
+    }
+
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String prefs_key) {
+//        Log.d(DEBUG_TAG, "preferences change listener called");
+
+        if (prefs_key.compareTo("route_pref_key") == 0) {
+            isOffGraphAcceptable = false; // reset if route changed
+        }
     }
 
     @Override
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        Log.i(DEBUG_TAG, "GraphView.onDraw() started");
+//        Log.i(DEBUG_TAG, "GraphView.onDraw() started");
 //        Log.i(DEBUG_TAG, "Canvas is (" + canvas.getWidth() + " by " + canvas.getHeight() + ")");
 
         water.clear();
@@ -183,7 +202,7 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
 
         String directionPref = prefs.getString("direction_pref_key", Config.DIRECTION_TO_DEFAULT);
         boolean isDirectionToEnd = directionPref.compareTo(Config.DIRECTION_TO_END) == 0;
-        Log.i("name.jdstew.uphillahead.GraphView", "Is direction to end? " + isDirectionToEnd);
+//        Log.i("name.jdstew.uphillahead.GraphView", "Is direction to end? " + isDirectionToEnd);
         String system = prefs.getString("system_pref_key", Config.SYSTEM_DEFAULT);
 //        Log.i("name.jdstew.uphillahead.GraphView", "Measurement system is " + system);
         double zoomDist = Double.parseDouble(prefs.getString("zoom_pref_key", Double.toString(Config.ZOOM_DEFAULT)));
@@ -223,60 +242,72 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
 
         Graph graph = GraphManager.getInstance(getContext()).getGraph(prefs.getString("route_pref_key", String.valueOf(R.string.txt_route_title)));
         if (graph == null) {
-            Log.i("name.jdstew.uphillahead.GraphView", "Cannot render graph - Graph object is null.");
+//            Log.i("name.jdstew.uphillahead.GraphView", "Cannot render graph - Graph object is null.");
             return;
         }
 
         // todo: get snap-to-distance
         int snapToTrail = Config.getSnapToTrailValue(prefs.getString("snap_to_trail_pref_key", Config.SNAP_TO_TRAIL_DEFAULT));
-        Log.i("name.jdstew.uphillahead.GraphView", "Snap-to-trail is " + snapToTrail);
+//        Log.i("name.jdstew.uphillahead.GraphView", "Snap-to-trail is " + snapToTrail);
 
-        Location location = observer.getLocation();
-        observerNode.changeLocation(location.getLatitude(), location.getLongitude(), 0.0);
-        Log.i(DEBUG_TAG, "observerNode at " + observerNode);
+        double distToTrail = graph.setEntryEdge(observerNode, isDirectionToEnd);
+//        Log.i(DEBUG_TAG, "observerNode is " + observerNode);
+//        Log.i(DEBUG_TAG, "observerNode distance to trail is " + Calcs.getDisplayedDist(distToTrail, system));
+        // is the current location off trail?
+        if (distToTrail > (double)snapToTrail) {
+            // has the user accepted the location as being off trial?
+            if (isOffGraphAcceptable) {
+                // todo: display distance to trail and time of last update
+                return; // meaning do not graph
+            } else { // ask the user if they'd like to simulate location at the closest Graph Node?
+                StringBuilder sb = new StringBuilder();
+                sb.append("Currently ");
+                sb.append(Calcs.getDisplayedDist(distToTrail, system));
+                sb.append(" from trail. Simulate closet point on trail?");
 
-        cursorNode = graph.getEntryEdge(observerNode, snapToTrail, isDirectionToEnd);
-        if (cursorNode == null) { // if observer is not near the trail
-            // observerNode not near this trail, ask to simulate or wait
-            Log.i(DEBUG_TAG, "cursorNode is null");
-
-            // Use the Builder class for convenient dialog construction
-            // Note: AlertDialog is non-blocking by design
-            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-            builder.setMessage(R.string.alert_snap_to_trail)
-                    .setPositiveButton(R.string.opt_simulate, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            if (isDirectionToEnd) {
-                                cursorNode = graph.getStartNode();
-                            } else {
-                                cursorNode = graph.getLastNode();
+                // Use the Builder class for convenient dialog construction
+                // Note: AlertDialog is non-blocking by design
+                AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+                builder.setMessage(sb.toString())
+                        .setPositiveButton(R.string.opt_simulate, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                Node closestNode = null;
+                                // note: only one edge of the observer node is null
+                                if (observerNode.getNextEdge() != null) {
+                                    closestNode =  observerNode.getNextEdge().getNextNode();
+                                } else if (observerNode.getPrevEdge() != null)  {
+                                    closestNode =  observerNode.getPrevEdge().getPrevNode();
+                                } else {
+//                                    Log.e(DEBUG_TAG, "closestNode has no non-null edge!");
+                                }
+//                                Log.i(DEBUG_TAG, "setting simulated node to " + closestNode);
+                                observer.setSimulatedLocation(closestNode.getLatitude(), closestNode.getLongitude(), closestNode.getElevation());
                             }
-                            observer.setSimulatedLocation(cursorNode.getLatitude(), cursorNode.getLongitude());
-                            invalidate();
-                        }
-                    })
-                    .setNegativeButton(R.string.opt_cancel, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            // todo: display waiting for GPS
-                        }
-                    });
-            // Create the AlertDialog object and show it
-            builder.create().show();
+                        })
+                        .setNegativeButton(R.string.opt_cancel, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                isOffGraphAcceptable = true;
+                                Toast.makeText(getContext(), "Location off-trail - nothing to display", Toast.LENGTH_LONG).show();
+                            }
+                        });
+                // Create the AlertDialog object and show it
+                builder.create().show();
 
-            return; // meaning, do not graph until the dialog is answered
+                return; // meaning, do not graph until the dialog is answered
+            }
         }
-        Log.i(DEBUG_TAG, "cursorNode at: " + cursorNode.toString());
+//        Log.i(DEBUG_TAG, "cursorNode at: " + cursorNode.toString());
 
+        Node cursorNode = observerNode;
         while (cursorNode != null && (int)currentX < getWidth()) {
-            //            Log.i(DEBUG_TAG, "Cursor at (" + currentX + ", " + currentY + ")");
+//          Log.i(DEBUG_TAG, "Cursor at (" + currentX + ", " + currentY + ")");
             previousX = currentX;
 
             Edge edge;
             if (isDirectionToEnd) { // direction forward
                 edge = cursorNode.getNextEdge();
                 if (edge == null) {
-                    Toast.makeText(getContext(), "Approaching end of trail.", Toast.LENGTH_LONG).show();
-                    break;
+                    break; // however, this shouldn't happen
                 }
 
                 if (edge.getVerticalDistance() > 0.0) {
@@ -287,8 +318,7 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
             } else {
                 edge = cursorNode.getPrevEdge();
                 if (edge == null) {
-                    Toast.makeText(getContext(), "Approaching start of trail.", Toast.LENGTH_LONG).show();
-                    break;
+                    break; // however, this shouldn't happen
                 }
 
                 if (edge.getVerticalDistance() > 0.0) {
@@ -299,28 +329,26 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
             }
 //            Log.i("name.jdstew.uphillahead.GraphView", "cumGain: " + cumGain + ", cumLoss: " + cumLoss);
 
-            if (edge != null) {
-                // plot by distance change formula
-                currentX += edge.getHorizontalDistance() * horiScale;
-                // plot by distance change formula
+            // plot by distance change formula
+            currentX += edge.getHorizontalDistance() * horiScale;
+            // plot by distance change formula
 //              currentY = startingY + ((startingElev - cursorNode.getElevation()) * vertScale);
 //              Log.i("name.jdstew.uphillahead.GraphView", "node elevation is " + cursorNode.getElevation());
 
-                // plot by elevation change formula
-                if (isDirectionToEnd) {
-                    currentY -= edge.getVerticalDistance() * vertScale;
-                } else {
-                    currentY += edge.getVerticalDistance() * vertScale;
-                }
-//              Log.i("name.jdstew.uphillahead.GraphView", "currently at (" + (int)currentX + ", " + (int)currentY + ")");
-                surfacePath.lineTo((float) currentX, (float) currentY);
-
-                // calculate pace and cumulative time
-                cumDist += edge.getDistance(); // meters
-                pace = Calcs.getPace(edge.getSlope(), cursorNode.getElevation());
-                cumTime += (edge.getDistance() / 1_000.0) / pace / paceBias; // time = speed / distance, in Km/hr
-//              Log.i("name.jdstew.uphillahead.GraphView", "cumDist: " + cumDist + ", cumTime: " + cumTime);
+            // plot by elevation change formula
+            if (isDirectionToEnd) {
+                currentY -= edge.getVerticalDistance() * vertScale;
+            } else {
+                currentY += edge.getVerticalDistance() * vertScale;
             }
+//              Log.i("name.jdstew.uphillahead.GraphView", "currently at (" + (int)currentX + ", " + (int)currentY + ")");
+            surfacePath.lineTo((float) currentX, (float) currentY);
+
+            // calculate pace and cumulative time
+            cumDist += edge.getDistance(); // meters
+            pace = Calcs.getPace(edge.getSlope(), cursorNode.getElevation());
+            cumTime += (edge.getDistance() / 1_000.0) / pace / paceBias; // time = speed / distance, in Km/hr
+//              Log.i("name.jdstew.uphillahead.GraphView", "cumDist: " + cumDist + ", cumTime: " + cumTime);
 
             // Is the touch point along this Edge?  If so, calculate the partial distance and time
             if (touchPoint.x >= (int)previousX && touchPoint.x < (int)currentX) {
@@ -374,12 +402,11 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
             }
 
             if (isDirectionToEnd) { // direction forward
-                cursorNode = edge.getNextNode();
+                cursorNode = cursorNode.getNextEdge().getNextNode();
             } else {
-                cursorNode = edge.getPrevNode();
+                cursorNode = cursorNode.getPrevEdge().getPrevNode();
             }
         }
-        cursorNode = null;
 
         // Z-order-20. Brown "earth" filled polygon [Path earthPolygon; LIGHT ONLY]
         if (!isNightMode) {
@@ -404,17 +431,32 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
         // Z-order-50. Observer (person) icon
         int iconPixels = Calcs.dpToPx(DRAWN_ICON_DP, getContext());
         // was location obtain recently?
-        if (location.getTime() >= System.currentTimeMillis() - Config.LOCATION_RECENT){
+        if (observerLocation == null || observerLocation.getProvider().compareTo(Config.SOURCE_SIMULATED) == 0) {
+            drawableGrayHiker.setBounds(0, ((int)startingY - (iconPixels / 2)), iconPixels, ((int)startingY - (iconPixels / 2)) + iconPixels);
+            drawableGrayHiker.draw(canvas);
+        } else if (observerLocation.getTime() >= System.currentTimeMillis() - Config.LOCATION_RECENT) {
             drawableGreenHiker.setBounds(0, ((int)startingY - (iconPixels / 2)), iconPixels, ((int)startingY - (iconPixels / 2)) + iconPixels);
             drawableGreenHiker.draw(canvas);
-        } else if (location.getTime() > 0) {
+        } else {
             drawableYellowHiker.setBounds(0, ((int)startingY - (iconPixels / 2)), iconPixels, ((int)startingY - (iconPixels / 2)) + iconPixels);
             drawableYellowHiker.draw(canvas);
-        } else { // must be simulated then
-            // if (location.isMock()) { // only for build > 31
-                drawableGrayHiker.setBounds(0, ((int)startingY - (iconPixels / 2)), iconPixels, ((int)startingY - (iconPixels / 2)) + iconPixels);
-                drawableGrayHiker.draw(canvas);
-            // }
+
+            DateFormat timeFormatter = new SimpleDateFormat("H:mm");
+            Date locationTime = new Date(observerLocation.getTime());
+            String displayTime = timeFormatter.format(locationTime);
+
+            TextPaint locationTimeTextPaint = new TextPaint();
+            locationTimeTextPaint.setAntiAlias(true);
+            locationTimeTextPaint.setTextSize(Calcs.spToPx(FONT_SP_SIZE, getContext()));
+            if (!isNightMode) {
+                locationTimeTextPaint.setColor(getResources().getColor(R.color.black, null));
+            } else {
+                locationTimeTextPaint.setColor(getResources().getColor(R.color.gray_light, null));
+            }
+            float locationTimeX = 0;
+            float locationTimeY = (int)startingY + (2 * Calcs.spToPx(FONT_SP_SIZE, getContext()));
+
+            canvas.drawText(displayTime, locationTimeX, locationTimeY, locationTimeTextPaint);
         }
 
         // Z-order-60. Visible distance text [lower right]
@@ -485,6 +527,11 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
             nodeDetailsText.append(System.lineSeparator());
             nodeDetailsText.append(n.getDescription());
             detailsTextView.setText(nodeDetailsText.toString());
+            if (!detailsTextView.isInLayout()) {
+                detailsTextView.requestLayout();  // else call forceLayout()
+            } else {
+//                Log.w(DEBUG_TAG , "unable to request layout of node details popup - in current layout pass" );
+            }
 
             if (nodeDetailsText.length() < POPUP_DETAILS_CHAR_THRESHOLD) {
 
@@ -514,21 +561,24 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
 
                 Button btnSimulate = nodeDetailView.findViewById(R.id.simulate_button);
                 btnSimulate.setOnClickListener(ocl -> {
-                    observer.setSimulatedLocation(n.getLatitude(), n.getLongitude());
+                    touchPoint.set(Integer.MAX_VALUE, Integer.MAX_VALUE);
+                    observer.setSimulatedLocation(n.getLatitude(), n.getLongitude(), n.getElevation());
                     popupWindow.dismiss();
                     invalidate();
                 });
 
                 Button btnGoogleMaps = nodeDetailView.findViewById(R.id.google_map_button);
                 btnGoogleMaps.setOnClickListener(ocl -> {
+                    touchPoint.set(Integer.MAX_VALUE, Integer.MAX_VALUE);
                     Uri gmmIntentUri = Uri.parse("geo:" + n.getLatitude() + "," + n.getLongitude());
-//                    Log.e("name.jdstew.uphillahead.GraphView", "gmmIntentUri: " + gmmIntentUri );
+//                  Log.e("name.jdstew.uphillahead.GraphView", "gmmIntentUri: " + gmmIntentUri );
                     Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
                     mapIntent.setPackage("com.google.android.apps.maps");
                     popupWindow.dismiss();
                     parentActivity.startActivity(mapIntent);
                 });
 //            Log.i("name.jdstew.uphillahead.GraphView", "Popup window at (" + w + ", " + h + ")" );
+
                 popupWindow.showAtLocation(this, Gravity.NO_GRAVITY, popupX, popupY);
             } else {
                 Intent i = new Intent(parentActivity, NodeDetailsActivity.class);
@@ -584,7 +634,22 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
             }
         }
 
+        if ((int)currentX < getWidth()) {
+            if (isDirectionToEnd) { // direction forward
+                Toast.makeText(getContext(), "At or near end of trail.", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(getContext(), "At or near start of trail.", Toast.LENGTH_LONG).show();
+            }
+        }
 //        Log.d(DEBUG_TAG, "GraphView.onDraw() finished (" + iterations + " iterations)");
+    }
+
+    void onStopPsuedo() {
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("location_latitude_pref_key", Double.toString(observerNode.getLatitude()));
+        editor.putString("location_longitude_pref_key", Double.toString(observerNode.getLongitude()));
+        editor.putString("location_elevation_pref_key", Double.toString(observerNode.getElevation()));
+        editor.apply();
     }
 
     public Node getDetailedNode(Point p) {
@@ -605,7 +670,7 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
                 int heightMax = nP.y;
 
                 if (p.x <= widthMax && p.x >= widthMin && p.y <= heightMax && p.y >= heightMin) {
-//                    Log.i("name.jdstew.uphillahead.GraphView", "Touch point found tent node");
+//                  Log.i("name.jdstew.uphillahead.GraphView", "Touch point found tent node");
                     returnedNode.set(nV);
                 }
             });
@@ -620,7 +685,7 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
                 int heightMax = nP.y + iconSquare;
 
                 if (p.x <= widthMax && p.x >= widthMin && p.y <= heightMax && p.y >= heightMin) {
-//                    Log.i("name.jdstew.uphillahead.GraphView", "Touch point found water node");
+//                  Log.i("name.jdstew.uphillahead.GraphView", "Touch point found water node");
                     returnedNode.set(nV);
                 }
             });
@@ -635,7 +700,7 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
                 int heightMax = nP.y;
 
                 if (p.x <= widthMax && p.x >= widthMin && p.y <= heightMax && p.y >= heightMin) {
-//                    Log.i("name.jdstew.uphillahead.GraphView", "Touch point found info node");
+//                  Log.i("name.jdstew.uphillahead.GraphView", "Touch point found info node");
                     returnedNode.set(nV);
                 }
             });
@@ -743,7 +808,7 @@ public class GraphView extends SurfaceView implements OnSuccessListener<Location
         if (drawable != null) {
             return BitmapFactory.decodeResource(context.getResources(), drawableId);
         } else {
-//            Log.w(DEBUG_TAG, "Unable to convert SVG icon to Bitmap");
+//          Log.w(DEBUG_TAG, "Unable to convert SVG icon to Bitmap");
             return null;
         }
     }
