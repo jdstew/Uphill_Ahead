@@ -24,10 +24,10 @@
             app:useSimpleSummaryProvider="true"/>
 
         <DropDownPreference
-            android:key="@string/gps_update_pref_key"
-            android:title="@string/gps_update_pref_title"
-            android:entries="@array/gps_update_pref_array"
-            android:entryValues="@array/gps_update_pref_array"
+            android:key="@string/location_update_pref_key"
+            android:title="@string/location_update_pref_title"
+            android:entries="@array/location_update_pref_array"
+            android:entryValues="@array/location_update_pref_array"
             android:defaultValue="1"
             app:useSimpleSummaryProvider="true"/>
 
@@ -45,7 +45,8 @@
             app:min="1"
             android:defaultValue="10"
             android:max="30"
-            app:showSeekBarValue="false"/>
+            app:showSeekBarValue="false"
+            android:contentDescription=""/>
 
         <SeekBarPreference
             android:key="@string/pace_pref_key"
@@ -53,7 +54,8 @@
             app:min="5"
             android:defaultValue="10"
             android:max="20"
-            app:showSeekBarValue="false"/>
+            app:showSeekBarValue="false"
+            android:contentDescription=""/>
 
         <DropDownPreference
             android:key="@string/system_pref_key"
