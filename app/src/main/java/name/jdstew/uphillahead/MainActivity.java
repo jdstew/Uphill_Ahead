@@ -24,10 +24,12 @@ import androidx.core.app.ActivityCompat;
 import androidx.preference.PreferenceManager;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -62,6 +64,11 @@ public class MainActivity extends AppCompatActivity {
         graphView = new GraphView(this);
         graphView.setZ(-1.0f);
         graphView.setWillNotDraw(false);
+
+//        int nightModeFlags = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+//        boolean isNightMode = nightModeFlags == Configuration.UI_MODE_NIGHT_YES;
+        graphView.setLayerType(View.LAYER_TYPE_SOFTWARE, null); // GraphView.getViewBackgroundPaint(isNightMode, this)); // second param is an necessary Paint object
+
 //        TODO: need to set background of GraphView based upon day/night setting
 //        graphView.setBackgroundColor(getResources().getColor(R.color.green_usfs, null));
 
