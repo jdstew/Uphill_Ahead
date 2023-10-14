@@ -43,6 +43,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
             String description = extras.getString("description");
             double latitude = extras.getDouble("latitude");
             double longitude = extras.getDouble("longitude");
+            String uriString = extras.getString("uriString");
 
             TextView txtDescription = findViewById(R.id.node_details_text);
             txtDescription.setText(description);
@@ -58,7 +59,7 @@ public class NodeDetailsActivity extends AppCompatActivity {
 
             Button btnGoogleMaps = findViewById(R.id.google_map_button);
             btnGoogleMaps.setOnClickListener(ocl -> {
-                Uri gmmIntentUri = Uri.parse("geo:" + latitude + "," + longitude);
+                Uri gmmIntentUri = Uri.parse(uriString);
                 Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
                 mapIntent.setPackage("com.google.android.apps.maps");
                 this.startActivity(mapIntent);
