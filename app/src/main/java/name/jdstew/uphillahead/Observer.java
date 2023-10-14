@@ -135,7 +135,7 @@ public class Observer extends Thread implements OnCompleteListener, OnSuccessLis
 
             setSimulatedLocation(latitude, longitude, elevation);
         } else {
-            Log.e(DEBUG_TAG, "Location source of " + locationSource + " is not understood");
+//            Log.e(DEBUG_TAG, "Location source of " + locationSource + " is not understood");
         }
     }
 
@@ -146,15 +146,15 @@ public class Observer extends Thread implements OnCompleteListener, OnSuccessLis
             Task<Location> lkpTask;
             lkpTask = fusedLocationClient.getLastLocation();
             lkpTask.addOnCompleteListener(this);
-            Log.d(DEBUG_TAG, "Last location requested");
+//            Log.d(DEBUG_TAG, "Last location requested");
         }
 
         // start device updates
         if (ActivityCompat.checkSelfPermission(mainActivity, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(mainActivity, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             fusedLocationClient.requestLocationUpdates(locRequest, locListener, Looper.getMainLooper());
-            Log.d(DEBUG_TAG, "Precise/fine location updates requested...");
+//            Log.d(DEBUG_TAG, "Precise/fine location updates requested...");
         } else {
-            Log.e(DEBUG_TAG, "Insufficient permissions to get precise position.");
+//            Log.e(DEBUG_TAG, "Insufficient permissions to get precise position.");
         }
     }
 
@@ -165,7 +165,7 @@ public class Observer extends Thread implements OnCompleteListener, OnSuccessLis
     public void setSimulatedLocation(double latitude, double longitude, double elevation) {
         stopDeviceLocationServices();
         locationSource = Config.SOURCE_SIMULATED;
-        Log.d(DEBUG_TAG, "Observer set to simulated position");
+//        Log.d(DEBUG_TAG, "Observer set to simulated position");
 
         // editing the preferences will trigger onSharedPreferenceChanged() within this class
         SharedPreferences.Editor editor = prefs.edit();
@@ -187,16 +187,16 @@ public class Observer extends Thread implements OnCompleteListener, OnSuccessLis
     public void onComplete(@NonNull Task task) {
         Location location = (Location)task.getResult();
         if (location != null) {
-            Log.i(DEBUG_TAG, "LKP is: " + location);
+//            Log.i(DEBUG_TAG, "LKP is: " + location);
             onSuccess(location);
         } else {
-            Log.e(DEBUG_TAG, "Last known position (LKP) Location was NULL");
+//            Log.e(DEBUG_TAG, "Last known position (LKP) Location was NULL");
         }
     }
 
     @Override
     public void onSuccess(Location location) {
-        Log.i(DEBUG_TAG, "Device location services update via onSuccess() from " + location.getProvider());
+//        Log.i(DEBUG_TAG, "Device location services update via onSuccess() from " + location.getProvider());
         graphView.onSuccess(location);
     }
 
@@ -217,7 +217,7 @@ public class Observer extends Thread implements OnCompleteListener, OnSuccessLis
 
                 setSimulatedLocation(latitude, longitude, elevation);
             } else {
-                Log.e(DEBUG_TAG, "Location source of " + locationSource + " is not understood (at shared preference change)");
+//                Log.e(DEBUG_TAG, "Location source of " + locationSource + " is not understood (at shared preference change)");
             }
 
         // change to the newly set periodicity of location
@@ -242,8 +242,8 @@ public class Observer extends Thread implements OnCompleteListener, OnSuccessLis
             this.observer = obs;
         }
 
-        public void onLocationChanged(Location location) {
-            Log.i(DEBUG_TAG, "Device (GPS) is: " + location);
+        public void onLocationChanged(@NonNull Location location) {
+//            Log.i(DEBUG_TAG, "Device (GPS) is: " + location);
             observer.onSuccess(location);
         }
     }
