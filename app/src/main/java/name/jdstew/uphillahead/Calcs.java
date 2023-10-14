@@ -244,6 +244,52 @@ public class Calcs {
     }
 
     /**
+     * Computes the cross-track distance, or the right angle distance of a point from a line
+     * made by two point (using the Edge), to another point (the Node)
+     *
+     * @since version 1.2
+     * @param obsNode the Node to measure distance to
+     * @param edge the 'line' to measure the distance from
+     * @return the distance, in meters
+     */
+    public static double getCrossTrackDist(Node obsNode, Edge edge) {
+        if (edge == null || obsNode ==  null) {
+            return Double.NaN;
+        }
+
+        Node prevNode = edge.getPrevNode();
+        Node nextNode = edge.getNextNode();
+
+        if (prevNode.equals(obsNode) || nextNode.equals(obsNode)) {
+            return 0.0;
+        }
+
+        double radDist = getRoughDist(prevNode.getLatitude(), prevNode.getLongitude(), obsNode.getLatitude(), obsNode.getLongitude()) / AVERAGE_RADIUS;
+        double radPrevToObsNode = getRadiansFromToNode(prevNode, obsNode);
+        double radPrevtoNext = getRadiansFromToNode(prevNode, nextNode);
+
+        return Math.asin(Math.sin(radDist) * Math.sin(radPrevToObsNode - radPrevtoNext)) * AVERAGE_RADIUS;
+    }
+
+    /**
+     * Computes the angle, in radians, along the Earth's surface
+     *
+     * @since version 1.2
+     * @param fromNode starting Node
+     * @param toNode ending Node
+     * @return angle in radians
+     */
+    private static double getRadiansFromToNode(Node fromNode, Node toNode) {
+        double latRadFrom = Math.toRadians(fromNode.getLatitude());
+        double latRadTo = Math.toRadians(toNode.getLatitude());
+        double lonRadDiff = Math.toRadians(toNode.getLongitude() - fromNode.getLongitude());
+
+        double ordinate = Math.cos(latRadFrom) * Math.sin(latRadTo) - Math.sin(latRadFrom) * Math.cos(latRadTo) * Math.cos(lonRadDiff);
+        double abscissa = Math.sin(lonRadDiff) * Math.cos(latRadTo);
+        return Math.atan2(abscissa, ordinate);
+    }
+
+    /**
      * Get miles from kilometers
      *
      * @param kilometers the distance in kilometers to convert to miles
@@ -331,12 +377,12 @@ public class Calcs {
         if (system.compareTo(Config.SYSTEM_IMPERIAL) == 0) {
             time = time / Units.KILOMETERS_TO_MILES;
             int hours = (int)time;
-            int minutes = (int)((time - (double)hours) * 60);
+            int minutes = (int)((time - (double)hours) * 60.0);
 
             return hours + ":" + nf.format(minutes);
         } else {
             int hours = (int)time;
-            int minutes = (int)((time - (double)hours) * 60);
+            int minutes = (int)((time - (double)hours) * 60.0);
 
             return hours + ":" + nf.format(minutes);
         }
