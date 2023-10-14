@@ -79,11 +79,11 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
     /**
      * The dp length of dashes for a dashed line
      */
-    public static final int DASHED_DASHES_DP = 12;
+    public static final int DASHED_DASHES_DP = 10;
     /**
      * The dp width of a dashed line
      */
-    public static final int DASHED_LINE_DP = 4;
+    public static final int DASHED_LINE_DP = 2;
     /**
      * The dp length and width of a SVG icon
      */
@@ -94,9 +94,7 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
     private final Node observerNode;
     private Location observerLocation;
     private boolean isOffGraphAcceptable;
-    private final HashMap<Point, Node> water;
-    private final HashMap<Point, Node> tent;
-    private final HashMap<Point, Node> info;
+    private final HashMap<NodePoint, Node> iconMap;
     private final SharedPreferences prefs;
     protected Point touchPoint;
     private final Path surfacePath; // A line Path of elevations
@@ -123,6 +121,7 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
         super(parentActivity);
         this.parentActivity = parentActivity;
 
+
         prefs = PreferenceManager.getDefaultSharedPreferences(parentActivity);
         prefs.registerOnSharedPreferenceChangeListener(this);
 
@@ -133,9 +132,7 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
         observer = Observer.getInstance(this, (MainActivity)parentActivity);
         isOffGraphAcceptable = false;
 
-        water = new HashMap<>();
-        tent = new HashMap<>();
-        info = new HashMap<>();
+        iconMap = new HashMap<>();
 
         // NOTE: a touchPoint outside the GraphView will not be displayed.
         touchPoint = new Point(Integer.MAX_VALUE, Integer.MAX_VALUE);
@@ -184,9 +181,7 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
 //        Log.i(DEBUG_TAG, "GraphView.onDraw() started");
 //        Log.i(DEBUG_TAG, "Canvas is (" + canvas.getWidth() + " by " + canvas.getHeight() + ")");
 
-        water.clear();
-        tent.clear();
-        info.clear();
+        iconMap.clear();
 
         surfacePath.rewind();
         earthPolygon.rewind();
@@ -252,7 +247,7 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
 
         double distToTrail = graph.setEntryEdge(observerNode, isDirectionToEnd);
 //        Log.i(DEBUG_TAG, "observerNode is " + observerNode);
-//        Log.i(DEBUG_TAG, "observerNode distance to trail is " + Calcs.getDisplayedDist(distToTrail, system));
+        Log.i(DEBUG_TAG, "observerNode distance to trail is " + Calcs.getDisplayedDist(distToTrail, system));
         // is the current location off trail?
         if (distToTrail > (double)snapToTrail) {
             // has the user accepted the location as being off trial?
@@ -344,17 +339,14 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
 //              Log.i("name.jdstew.uphillahead.GraphView", "currently at (" + (int)currentX + ", " + (int)currentY + ")");
             surfacePath.lineTo((float) currentX, (float) currentY);
 
-            // calculate pace and cumulative time
-            cumDist += edge.getDistance(); // meters
+            // calculate pace based upon this edge, for use in partial and cumulative calculations
             pace = Calcs.getPace(edge.getSlope(), cursorNode.getElevation());
-            cumTime += (edge.getDistance() / 1_000.0) / pace / paceBias; // time = speed / distance, in Km/hr
-//              Log.i("name.jdstew.uphillahead.GraphView", "cumDist: " + cumDist + ", cumTime: " + cumTime);
 
             // Is the touch point along this Edge?  If so, calculate the partial distance and time
             if (touchPoint.x >= (int)previousX && touchPoint.x < (int)currentX) {
                 double partialEdgePercent = (touchPoint.x - previousX) / (currentX - previousX);
                 touchPointDist = cumDist + partialEdgePercent * edge.getDistance();
-                touchPointTime = cumTime + (partialEdgePercent * edge.getDistance() / 1_000.0) / pace * paceBias;
+                touchPointTime = cumTime + (partialEdgePercent * edge.getDistance() / 1_000.0) / (pace * paceBias); // t = d/s
 
                 if (isDirectionToEnd) { // direction forward
                     if (edge.getVerticalDistance() >= 0.0) {
@@ -375,6 +367,9 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
                 }
             }
 
+            // calculate pace and cumulative time
+            cumDist += edge.getDistance(); // meters
+            cumTime += (edge.getDistance() / 1_000.0) / (pace * paceBias); // time = speed / distance, in Km/hr
 
             // Z-order-10. Horizontal Green-Yellow-Red rectangles [LIGHT ONLY]
             if (!isNightMode) {
@@ -389,15 +384,18 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
                 }
             }
 
-
             // Is the node a source of water, campsite, or information?
             if (cursorNode.getDescription() != null) {
+                NodePoint np;
                 if (cursorNode.getName().contains("WA") || cursorNode.getName().contains("WR")) {
-                    water.put(new Point((int) currentX, (int) currentY), cursorNode);
+                    np = new NodePoint(drawableWater, currentX, currentY, cumDist, cumTime, cumGain, cumLoss);
+                    iconMap.put(np, cursorNode);
                 } else if (cursorNode.getName().contains("CS")) {
-                    tent.put(new Point((int) currentX, (int) currentY), cursorNode);
+                    np = new NodePoint(drawableTent, currentX, currentY, cumDist, cumTime, cumGain, cumLoss);
+                    iconMap.put(np, cursorNode);
                 } else if (cursorNode.getName() != null) {
-                    info.put(new Point((int) currentX, (int) currentY), cursorNode);
+                    np = new NodePoint(drawableInfo, currentX, currentY, cumDist, cumTime, cumGain, cumLoss);
+                    iconMap.put(np, cursorNode);
                 }
             }
 
@@ -479,25 +477,17 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
 
         // Z-order-80. Water, camp, and info icons#
         // water icons are drawn below the Node
-        water.forEach((p, n) -> {
-            float x = (float)(p.x - iconPixels / 2);
-            float y = (float)p.y;
-            drawableWater.setBounds((int)x, (int)y, (int)(x + iconPixels), (int)(y + iconPixels));
-            drawableWater.draw(canvas);
-        });
-        // tent icons are drawn above the Node
-        tent.forEach((p, n) -> {
-            float x = (float)(p.x - iconPixels / 2);
-            float y = (float)(p.y - iconPixels);
-            drawableTent.setBounds((int)x, (int)y, (int)(x + iconPixels), (int)(y + iconPixels));
-            drawableTent.draw(canvas);
-        });
-        // info icons are drawn above the Node
-        info.forEach((p, n) -> {
-            float x = (float)(p.x - iconPixels / 2);
-            float y = (float)(p.y - iconPixels);
-            drawableInfo.setBounds((int)x, (int)y, (int)(x + iconPixels), (int)(y + iconPixels));
-            drawableInfo.draw(canvas);
+        iconMap.forEach((np, n) -> {
+            float x, y;
+            if (np.getIcon().equals(drawableWater)) {
+                x = (float) (np.x - (double) (iconPixels / 2.0));
+                y = (float) np.y;
+            } else {
+                x = (float) (np.x - (double) (iconPixels / 2.0));
+                y = (float) (np.y - iconPixels);
+            }
+            np.getIcon().setBounds((int)x, (int)y, (int)(x + iconPixels), (int)(y + iconPixels));
+            np.getIcon().draw(canvas);
         });
 
         // Z-order-90. Gray vertical line (finger placement)
@@ -508,22 +498,24 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
         }
 
         // Z-order-100. Pop-up distance and ETA only
-        Node n = getDetailedNode(touchPoint);
-        if (n != null) {
+        NodePoint np = getNodePoint(touchPoint);
+        if (np != null) {
             LayoutInflater layoutInflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             View nodeDetailView = layoutInflater.inflate(R.layout.activity_node_details, null); // null because no applicable ViewGroup
+
+            Node n = iconMap.get(np);
 
             TextView detailsTextView = nodeDetailView.findViewById(R.id.node_details_text);
             nodeDetailsText.append(n.getName());
             nodeDetailsText.append(System.lineSeparator());
-            nodeDetailsText.append(Calcs.getDisplayedDist(touchPointDist, system));
+            nodeDetailsText.append(Calcs.getDisplayedDist(np.getDistance(), system));
             nodeDetailsText.append(", ");
-            nodeDetailsText.append(Calcs.getDisplayedTime(touchPointTime, system));
+            nodeDetailsText.append(Calcs.getDisplayedTime(np.getTime(), system));
             nodeDetailsText.append(System.lineSeparator());
             nodeDetailsText.append("+");
-            nodeDetailsText.append(Calcs.getDisplayedElev(touchPointGain, system));
+            nodeDetailsText.append(Calcs.getDisplayedElev(np.getGain(), system));
             nodeDetailsText.append(" / ");
-            nodeDetailsText.append(Calcs.getDisplayedElev(touchPointLoss, system));
+            nodeDetailsText.append(Calcs.getDisplayedElev(np.getLoss(), system));
             nodeDetailsText.append(System.lineSeparator());
             nodeDetailsText.append(n.getDescription());
             detailsTextView.setText(nodeDetailsText.toString());
@@ -532,6 +524,19 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
             } else {
 //                Log.w(DEBUG_TAG , "unable to request layout of node details popup - in current layout pass" );
             }
+
+            StringBuilder uriString = new StringBuilder();
+            uriString.append("geo:");
+            uriString.append(n.getLatitude());
+            uriString.append(',');
+            uriString.append(n.getLongitude());
+            uriString.append("?q=");
+            uriString.append(n.getLatitude());
+            uriString.append(',');
+            uriString.append(n.getLongitude());
+            uriString.append('(');
+            uriString.append(n.getName());
+            uriString.append(')');
 
             if (nodeDetailsText.length() < POPUP_DETAILS_CHAR_THRESHOLD) {
 
@@ -566,12 +571,13 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
                     popupWindow.dismiss();
                     invalidate();
                 });
-
+                // template:   geo:<lat>,<long>?q=<lat>,<long>(Label+Name)
                 Button btnGoogleMaps = nodeDetailView.findViewById(R.id.google_map_button);
                 btnGoogleMaps.setOnClickListener(ocl -> {
                     touchPoint.set(Integer.MAX_VALUE, Integer.MAX_VALUE);
-                    Uri gmmIntentUri = Uri.parse("geo:" + n.getLatitude() + "," + n.getLongitude());
-//                  Log.e("name.jdstew.uphillahead.GraphView", "gmmIntentUri: " + gmmIntentUri );
+
+                    Uri gmmIntentUri = Uri.parse(uriString.toString());
+                  Log.e("name.jdstew.uphillahead.GraphView", "gmmIntentUri: " + gmmIntentUri );
                     Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
                     mapIntent.setPackage("com.google.android.apps.maps");
                     popupWindow.dismiss();
@@ -585,6 +591,7 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
                 i.putExtra("description", nodeDetailsText.toString());
                 i.putExtra("latitude", n.getLatitude());
                 i.putExtra("longitude", n.getLongitude());
+                i.putExtra("uriString", uriString.toString());
                 parentActivity.startActivity(i);
             }
             touchPoint.x = Integer.MAX_VALUE;
@@ -652,61 +659,50 @@ public class GraphView extends SurfaceView implements SharedPreferences.OnShared
         editor.apply();
     }
 
-    public Node getDetailedNode(Point p) {
+    public NodePoint getNodePoint(Point touchPt) {
 //        Log.i("name.jdstew.uphillahead.GraphView", "Touch point at (" + p.x + ", " + p.y + ")");
-        AtomicReference<Node> returnedNode = new AtomicReference<>();
+        AtomicReference<NodePoint> returnedNode = new AtomicReference<>();
 
         int icon_size = Calcs.dpToPx(DEFAULT_NODE_ICON_SIZE, this.getContext());
         int icon_buffer = Calcs.dpToPx(DEFAULT_NODE_ICON_BUFFER, this.getContext());
 
         // perform basic square search for a Node with detailed information
-        // campsites are assumed to be above the node point
+        // campsites and info display above the node point
+        // water is assumed display below the node point
         int iconSquare = icon_size + icon_buffer;
-        if (tent != null) {
-            tent.forEach((Point nP, Node nV) -> {
-                int widthMin = nP.x - iconSquare / 2;
-                int widthMax = nP.x + iconSquare / 2;
-                int heightMin = nP.y - iconSquare;
-                int heightMax = nP.y;
-
-                if (p.x <= widthMax && p.x >= widthMin && p.y <= heightMax && p.y >= heightMin) {
-//                  Log.i("name.jdstew.uphillahead.GraphView", "Touch point found tent node");
-                    returnedNode.set(nV);
+        if (iconMap != null) {
+            iconMap.forEach((NodePoint nP, Node nV) -> {
+                int minX = nP.x - iconSquare / 2;
+                int maxX = nP.x + iconSquare / 2;
+                int minY, maxY;
+                if (nP.getIcon().equals(drawableWater)) {
+                    minY = nP.y;
+                    maxY = nP.y + iconSquare;
+                } else {
+                    minY = nP.y - iconSquare;
+                    maxY = nP.y;
                 }
-            });
-        }
 
-        // water is assumed to be below the node point
-        if (water != null) {
-            water.forEach((Point nP, Node nV) -> {
-                int widthMin = nP.x - iconSquare / 2;
-                int widthMax = nP.x + iconSquare / 2;
-                int heightMin = nP.y;
-                int heightMax = nP.y + iconSquare;
-
-                if (p.x <= widthMax && p.x >= widthMin && p.y <= heightMax && p.y >= heightMin) {
-//                  Log.i("name.jdstew.uphillahead.GraphView", "Touch point found water node");
-                    returnedNode.set(nV);
-                }
-            });
-        }
-
-        // info icons are assumed to be above the node point
-        if (info != null) {
-            info.forEach((Point nP, Node nV) -> {
-                int widthMin = nP.x - iconSquare / 2;
-                int widthMax = nP.x + iconSquare / 2;
-                int heightMin = nP.y - iconSquare;
-                int heightMax = nP.y;
-
-                if (p.x <= widthMax && p.x >= widthMin && p.y <= heightMax && p.y >= heightMin) {
-//                  Log.i("name.jdstew.uphillahead.GraphView", "Touch point found info node");
-                    returnedNode.set(nV);
+                if (touchPt.x <= maxX && touchPt.x >= minX && touchPt.y <= maxY && touchPt.y >= minY) {
+//                  Log.i("name.jdstew.uphillahead.GraphView", "Touch point found node");
+                    returnedNode.set(nP);
                 }
             });
         }
 
         return returnedNode.get();
+    }
+
+    public static Paint getViewBackgroundPaint(boolean isNight, Context context) {
+        Paint p = new Paint();
+        p.setStyle(Paint.Style.STROKE);
+        if (isNight) {
+            p.setColor(context.getResources().getColor(R.color.gray_dark, null));
+        } else {
+            p.setColor(context.getResources().getColor(R.color.gray_light, null));
+        }
+        p.setStrokeWidth(Calcs.dpToPx(Config.SURFACE_STROKE_WIDTH, context));
+        return p;
     }
 
     /**
