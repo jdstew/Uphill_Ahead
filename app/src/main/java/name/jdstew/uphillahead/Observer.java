@@ -51,7 +51,7 @@ import java.util.concurrent.TimeUnit;
  * @since 1.0
  * @author Jeff Stewart, jeffrey.d.stew@gmail.com
  */
-public class Observer extends Thread implements OnCompleteListener, OnSuccessListener<Location>, SharedPreferences.OnSharedPreferenceChangeListener {
+public class Observer extends Thread implements OnCompleteListener<Location>, OnSuccessListener<Location>, SharedPreferences.OnSharedPreferenceChangeListener {
 
     public static final String DEBUG_TAG = "name.jdstew.uphillahead.Observer";
     /**
