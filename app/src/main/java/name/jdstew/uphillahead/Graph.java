@@ -18,6 +18,8 @@ package name.jdstew.uphillahead;
 
 import androidx.annotation.NonNull;
 
+import android.util.Log;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -39,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class Graph implements Serializable {
 
+    public static final String DEBUG_TAG = "name.jdstew.uphillahead.Graph";
     private static final long serialVersionUID = 5323932677215095043L;
     private double maxLatitude;
     private double minLatitude;
@@ -98,7 +101,7 @@ public class Graph implements Serializable {
     /**
      * Returns the maximum latitude of the Graph.
      *
-     * @returnthe maximum latitude of the Graph
+     * @return the maximum latitude of the Graph
      */
     public double getMaxLatitude() {
         return maxLatitude;
@@ -474,7 +477,7 @@ public class Graph implements Serializable {
                 closestNode = n;
             }
         }
-        System.out.println("closest node is " + closestNode + " at " + closestNodeDist + " meters away");
+        Log.i(DEBUG_TAG,"closest node is " + closestNode + " at " + closestNodeDist + " meters away");
 
         // "level" the elevation of the node to closest node (typically for simulated locations)
         if (node.getElevation() == 0.0) {
@@ -483,6 +486,7 @@ public class Graph implements Serializable {
 
         // does the node match an existing Node within the graph?
         if (closestNodeDist <= Units.NODE_EQUALS_MIN) {
+            Log.i(DEBUG_TAG,"observer node equals existing Graph Node");
             if (toEnd) {
                 node.setNextEdge(closestNode.getNextEdge());
             } else {
@@ -493,6 +497,7 @@ public class Graph implements Serializable {
 
         // does the distance to the closest node exceed the maximum?
         if (closestNodeDist > Config.MAX_DIST_TO_GRAPH_EDGE) {
+            Log.i(DEBUG_TAG,"observer node is further than " + Config.MAX_DIST_TO_GRAPH_EDGE + " meters away, setting next node to start/end of trail");
             if (toEnd) {
                 if (closestNodeIndex < nodes.size() - 1) {
                     node.setNextEdge(closestNode.getNextEdge());
@@ -515,7 +520,7 @@ public class Graph implements Serializable {
             Edge nextEdge = closestNode.getNextEdge();
             if (nextEdge != null) {
                 node.setNextEdge(new Edge(node, nextEdge.getNextNode()));
-                return Calcs.getNodeToEdgeDist(node, nextEdge);
+                return Calcs.getCrossTrackDist(node, nextEdge);
             } else { // node is beyond the last node
                 node.setPrevEdge(new Edge(closestNode, node));
                 return closestNodeDist;
@@ -524,7 +529,7 @@ public class Graph implements Serializable {
             Edge prevEdge = closestNode.getPrevEdge();
             if (prevEdge != null) {
                 node.setPrevEdge(new Edge(prevEdge.getPrevNode(), node));
-                return Calcs.getNodeToEdgeDist(node, prevEdge);
+                return Calcs.getCrossTrackDist(node, prevEdge);
             } else { // node is prior to the first node
                 node.setNextEdge(new Edge(node, closestNode));
                 return closestNodeDist;
